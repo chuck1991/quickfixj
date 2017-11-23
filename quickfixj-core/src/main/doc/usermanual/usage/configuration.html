@@ -121,21 +121,21 @@
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>TargetCompID</I> </TD>
-    <TD> (Optional) counterparty's compID as associated with this FIX session </TD>
+    <TD> Counterparty's compID as associated with this FIX session </TD>
     <TD> case-sensitive alpha-numeric string </TD>
 
     <TD>&nbsp; </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>TargetSubID</I> </TD>
-    <TD> (Optional)  counterparty's subID as associated with this FIX session </TD>
+    <TD> (Optional)  Counterparty's subID as associated with this FIX session </TD>
     <TD> case-sensitive alpha-numeric string </TD>
 
     <TD>&nbsp; </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>TargetLocationID</I> </TD>
-    <TD> (Optional) counterparty's locationID as associated with this FIX session </TD>
+    <TD> (Optional) Counterparty's locationID as associated with this FIX session </TD>
     <TD> case-sensitive alpha-numeric string </TD>
 
     <TD>&nbsp; </TD>
@@ -202,15 +202,29 @@
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>StartDay</I> </TD>
-    <TD> For week long sessions, the starting day of week for the session. Use in combination with StartTime. </TD>
+    <TD> For week long sessions, the starting day of week for the session.
+      <br>Use in combination with StartTime.
+      <br>Incompatible with Weekdays</TD>
     <TD> Day of week in the default locale (e.g. Monday, mon, lundi, lun. etc.)</TD>
 
     <TD>&nbsp; </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>EndDay</I> </TD>
-    <TD> For week long sessions, the ending day of week for the session. Use in combination with EndTime. </TD>
+    <TD> For week long sessions, the ending day of week for the session.
+      <br>Use in combination with EndTime.
+      <br>Incompatible with Weekdays</TD>
     <TD> Day of week in the default locale (e.g. Monday, mon, lundi, lun. etc.)</TD>
+
+    <TD>&nbsp; </TD>
+  </TR>
+  <TR ALIGN="left" VALIGN="middle">
+    <TD> <I>Weekdays</I> </TD>
+    <TD> For daily sessions that are active on specific days of the week.
+      <br>Use in combination with StartTime and EndTime.
+      <br>Incompatible with StartDay and EndDay.
+      <br>If StartTime is before EndTime then the day corresponds to the StartTime.</TD>
+    <TD> Comma-delimited list of days of the week in the default locale (e.g. "Sun,Mon,Tue", "Dimanche,Lundi,Mardi" etc.)</TD>
 
     <TD>&nbsp; </TD>
   </TR>
@@ -221,12 +235,19 @@
     <TD> N </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
-    <TD> <I>MillisecondsInTimeStamp</I> </TD>
-    <TD> Determines if milliseconds should be added to
-    timestamps. Only available for FIX.4.2 and greater. </TD>
-    <TD> Y<br>N</TD>
+    <TD> <I>TimeStampPrecision</I> </TD>
+    <TD> Determines precision for timestamps in (Orig)SendingTime fields.
+        Only available for FIX.4.2 and greater.<br><br>
+        NB: This configuration is only considered for messages that are sent out. QuickFIX/J is able to receive UtcTimestamp fields with up to picosecond precision.<br>
+        Please note however that only up to nanosecond precision will be stored, i.e. the picoseconds will be truncated.
+    </TD>
+    <TD> One of
+        <ul><li>SECONDS</li>
+            <li>MILLIS</li>
+            <li>MICROS</li>
+            <li>NANOS</li></ul></TD>
 
-    <TD> Y </TD>
+    <TD> MILLIS </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
     <TD> <I>ClosedResendInterval</I></TD>
@@ -477,11 +498,29 @@
     <TD>"TCP" </TD>
   </TR>
   <TR ALIGN="left" VALIGN="middle">
+    <TD> <I>SocketConnectPort&lt;n&gt;</I> </TD>
+    <TD> Alternate socket port(s) for connecting to a session for failover or load balancing,
+         where <B>n</B> is a positive integer, i.e. SocketConnectPort1, SocketConnectPort2, etc.
+         Must be consecutive and have a matching SocketConnectHost&lt;n&gt;
+    </TD>
+    <TD> positive integer </TD>
+    <TD>&nbsp; </TD>
+  </TR>
+  <TR ALIGN="left" VALIGN="middle">
 
     <TD> <I>SocketConnectHost&lt;n&gt;</I> </TD>
-    <TD> Alternate socket hosts for connecting to a session for failover, where <B>n</B> is a
-         positive integer. (i.e.) SocketConnectHost1, SocketConnectHost2... must be consecutive
-         and have a matching SocketConnectPort[n]</TD>
+    <TD> Alternate socket host(s) for connecting to a session for failover or load balancing,
+         where <B>n</B> is a positive integer, i.e. SocketConnectHost1, SocketConnectHost2, etc.
+         Must be consecutive and have a matching SocketConnectPort&lt;n&gt;
+         <p>
+      Connection list iteration rules:
+      <ul>
+        <li>Connections are tried one after another until one is successful: SocketConnectHost:SocketConnectPort,
+          SocketConnectHost1:SocketConnectPort1, etc.</li>
+        <li>Next connection attempt after a successful connection will start at first defined connection again:
+          SocketConnectHost:SocketConnectPort.</li>
+      </ul>
+    </TD>
     <TD> valid IP address in the format of x.x.x.x or a domain name </TD>
 
     <TD>&nbsp; </TD>

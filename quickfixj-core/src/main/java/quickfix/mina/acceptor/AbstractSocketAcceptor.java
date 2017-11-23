@@ -111,20 +111,19 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
                 ioAcceptor.setFilterChainBuilder(ioFilterChainBuilder);
                 ioAcceptor.setCloseOnDeactivation(false);
                 ioAcceptor.bind(socketDescriptor.getAddress());
-                log.info("Listening for connections at " + address + " for session(s) "
-                        + socketDescriptor.getAcceptedSessions().keySet());
+                log.info("Listening for connections at {} for session(s) {}", address, socketDescriptor.getAcceptedSessions().keySet());
             }
         } catch (FieldConvertError e) {
             throw new ConfigError(e);
         } catch (Exception e) {
-            log.error("Cannot start acceptor session for " + address + ", error:" + e);
+            log.error("Cannot start acceptor session for {}, error: {}", address, e);
             throw new RuntimeError(e);
         }
     }
 
     private void installSSL(AcceptorSocketDescriptor descriptor,
             CompositeIoFilterChainBuilder ioFilterChainBuilder) throws GeneralSecurityException {
-        log.info("Installing SSL filter for " + descriptor.getAddress());
+        log.info("Installing SSL filter for {}", descriptor.getAddress());
         SSLConfig sslConfig = descriptor.getSslConfig();
         SSLContext sslContext = SSLContextFactory.getInstance(sslConfig);
         SSLFilter sslFilter = new SSLFilter(sslContext);
@@ -139,11 +138,9 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
 
     private IoAcceptor getIoAcceptor(AcceptorSocketDescriptor socketDescriptor, boolean init) throws ConfigError {
         int transportType = ProtocolFactory.getAddressTransportType(socketDescriptor.getAddress());
-        AcceptorSessionProvider sessionProvider = sessionProviders.get(socketDescriptor.getAddress());
-        if (sessionProvider == null) {
-            sessionProvider = new DefaultAcceptorSessionProvider(socketDescriptor.getAcceptedSessions());
-            sessionProviders.put(socketDescriptor.getAddress(), sessionProvider);
-        }
+        AcceptorSessionProvider sessionProvider = sessionProviders.
+                computeIfAbsent(socketDescriptor.getAddress(),
+                        k -> new DefaultAcceptorSessionProvider(socketDescriptor.getAcceptedSessions()));
 
         IoAcceptor ioAcceptor = ioAcceptors.get(socketDescriptor);
         if (ioAcceptor == null && init) {
@@ -185,8 +182,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
                 useSSL = true;
                 sslConfig = SSLSupport.getSslConfig(getSettings(), sessionID);
             } else {
-                log.warn("SSL will not be enabled for transport type=" + acceptTransportType
-                        + ", session=" + sessionID);
+                log.warn("SSL will not be enabled for transport type={}, session={}", acceptTransportType, sessionID);
             }
         }
 
@@ -246,7 +242,6 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
         }
     }
 
-    // XXX does this need to by synchronized?
     protected void stopAcceptingConnections() throws ConfigError {
         Iterator<IoAcceptor> ioIt = getEndpoints().iterator();
         while (ioIt.hasNext()) {
@@ -254,7 +249,7 @@ public abstract class AbstractSocketAcceptor extends SessionConnector implements
             SocketAddress localAddress = ioAcceptor.getLocalAddress();
             ioAcceptor.unbind();
             ioAcceptor.dispose(true);
-            log.info("No longer accepting connections on " + localAddress);
+            log.info("No longer accepting connections on {}", localAddress);
             ioIt.remove();
         }
     }

@@ -28,8 +28,7 @@ import quickfix.mina.acceptor.AbstractSocketAcceptor;
  * sessions.
  */
 public class SocketAcceptor extends AbstractSocketAcceptor {
-    private Boolean isStarted = Boolean.FALSE;
-    private final Object lock = new Object();
+    private volatile Boolean isStarted = Boolean.FALSE;
     private final SingleThreadedEventHandlingStrategy eventHandlingStrategy;
 
     public SocketAcceptor(Application application, MessageStoreFactory messageStoreFactory,
@@ -71,29 +70,22 @@ public class SocketAcceptor extends AbstractSocketAcceptor {
     }
 
     @Override
-    public void block() throws ConfigError, RuntimeError {
-        initialize(false);
-    }
-
-    @Override
     public void start() throws ConfigError, RuntimeError {
         initialize(true);
     }
 
     private void initialize(boolean blockInThread) throws ConfigError {
-        synchronized (lock) {
-            if (isStarted.equals(Boolean.FALSE)) {
-                startAcceptingConnections();
-                if (blockInThread) {
-                    eventHandlingStrategy.blockInThread();
-                    isStarted = Boolean.TRUE;
-                } else {
-                    isStarted = Boolean.TRUE;
-                    eventHandlingStrategy.block();
-                }
+        if (isStarted.equals(Boolean.FALSE)) {
+            eventHandlingStrategy.setExecutor(longLivedExecutor);
+            startAcceptingConnections();
+            isStarted = Boolean.TRUE;
+            if (blockInThread) {
+                eventHandlingStrategy.blockInThread();
             } else {
-                log.warn("Ignored attempt to start already running SocketAcceptor.");
+                eventHandlingStrategy.block();
             }
+        } else {
+            log.warn("Ignored attempt to start already running SocketAcceptor.");
         }
     }
 
@@ -104,18 +96,18 @@ public class SocketAcceptor extends AbstractSocketAcceptor {
 
     @Override
     public void stop(boolean forceDisconnect) {
-        eventHandlingStrategy.stopHandlingMessages();
-        synchronized (lock) {
+        if (isStarted.equals(Boolean.TRUE)) {
             try {
                 try {
+                    logoutAllSessions(forceDisconnect);
                     stopAcceptingConnections();
                 } catch (ConfigError e) {
                     log.error("Error when stopping acceptor.", e);
                 }
-                logoutAllSessions(forceDisconnect);
                 stopSessionTimer();
             } finally {
                 Session.unregisterSessions(getSessions());
+                eventHandlingStrategy.stopHandlingMessages();
                 isStarted = Boolean.FALSE;
             }
         }
